@@ -79,18 +79,28 @@ static inline sds compile_shell(const char* str,size_t len, sds first){
 
 static sds compile_expr(const char* str,int flags,size_t *pos){
 	sds first,s1;
-	int param;
+	int param,isexpr;
 	if(!next_token(str,pos))return NULL;
-	
+	isexpr=0;
 	if(isIdentFirst(str[pos[0]])){
 		first = sdsnewlen(str+pos[0],pos[1]-pos[0]);
+		if(!strcmp(first,"do")){
+			sdsfree(first);
+			if(!next_token(str,pos))return NULL;
+			if(str[pos[0]]=='('){
+				first = compile_stock(str,pos,sdsnew("("),1);
+				isexpr = 1;
+			}else
+				first = sdsnewlen(str+pos[0],pos[1]-pos[0]);
+		}
 		if(!next_token(str,pos)) {
 			if(flags&F_isPiped){
 				s1 = sdsnew("_slot(_execp,"); /*)*/
 			}else{
 				s1 = sdsnew("_spawnp(");/*)*/
 			}
-			s1 = compile_shell(first,sdslen(first),s1);
+			if(isexpr) s1 = sdscatsds(s1,first);
+			else s1 = compile_shell(first,sdslen(first),s1);
 			sdsfree(first);
 			s1 = sdscat(s1,")");
 			return s1;
@@ -113,7 +123,8 @@ static sds compile_expr(const char* str,int flags,size_t *pos){
 			}else{
 				s1 = sdsnew("_spawnp(");/*)*/
 			}
-			s1 = compile_shell(first,sdslen(first),s1);
+			if(isexpr) s1 = sdscatsds(s1,first);
+			else s1 = compile_shell(first,sdslen(first),s1);
 			sdsfree(first);
 			first = s1;
 			s1 = NULL;
