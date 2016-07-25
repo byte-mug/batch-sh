@@ -250,7 +250,7 @@ sds compile_line_str(sds line){
 		break;
 	case 5:
 		if(!stcmp(line+pos[0],"while")){
-			comp = sdsnew("if ");
+			comp = sdsnew("while ");
 			part = compile_expr(line,0,pos);
 			sdsfree(line);
 			comp = sdscatsds(comp,part);
@@ -267,7 +267,7 @@ sds compile_line_str(sds line){
 		break;
 	case 6:
 		if(!stcmp(line+pos[0],"elseif")){
-			comp = sdsnew("if ");
+			comp = sdsnew("elseif ");
 			part = compile_expr(line,0,pos);
 			sdsfree(line);
 			comp = sdscatsds(comp,part);
@@ -278,6 +278,7 @@ sds compile_line_str(sds line){
 	}
 	
 	comp = compile_exprq(line,0);
+	comp = sdscat(comp," ;\n");
 	//printf(__FILE__ " %d: comp=%s\n",__LINE__,comp);
 	return comp;
 }
