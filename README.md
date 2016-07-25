@@ -75,4 +75,6 @@ end
 
 ## Known bugs.
 
-* Piping blocks.
+* Sometimes, piping blocks the entire interpreter.
+
+
