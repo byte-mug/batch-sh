@@ -45,14 +45,14 @@ enum {
 
 static sds compile_stock(const char* str,size_t *pos,sds first,int cnt){
 	while((cnt>0)&&next_token(str,pos)){
-		switch(*str){
+		switch(str[pos[0]]){
 		case '(':cnt++;
 		case ')':cnt--;
 		}
 		first = sdscat(first," ");
 		if(!stcmp(str+pos[0],"~&")){
 			first = sdscat(first,"|");
-		}else if(!stcmp(str+pos[0],"~&")){
+		}else if(str[pos[0]]=='?'){
 			first = sdscat(first,"#");
 		}else if(str[pos[0]]=='$'){
 			first = sdscat(first,"_S.");
@@ -109,20 +109,183 @@ static sds compile_expr(const char* str,int flags,size_t *pos){
 			s1 = NULL;
 			do{
 				first = sdscat(first,",");
-				first = compile_shell(str+pos[0],pos[1]-pos[0],first);
+				if(str[pos[0]]=='\\')
+					if(!next_token(str,pos)) break;
+				if(str[pos[0]]=='(')
+					first = compile_stock(str,pos,sdscat(first,"("),1);
+				else
+					first = compile_shell(str+pos[0],pos[1]-pos[0],first);
 			}while(next_token(str,pos));
 			/*(*/
 			first = sdscat(first,")");
 		}
 		return first;
+	}else if(str[pos[0]]=='(') {
+		first = sdsnew("(");
+		first = compile_stock(str,pos,first,1);
+		return first;
 	}
 	return NULL;
 }
 
-sds compile_line(FILE* src){
+static sds getLine(FILE* src){
+	size_t pos[4];
+	pos[1]=0;
+	sds data = NULL;
+restart:
+	if(!fgets(buffer,sizeof(buffer),src))return data;
+	data = data?sdscat(data,buffer):sdsnew(buffer);
+	while(next_token(data,pos)){
+		if(data[pos[0]]=='\\'){
+			pos[2] = pos[0];
+			pos[3] = pos[1];
+			if(!next_token(data,pos)){
+				data[pos[2]]=' ';
+				data[pos[3]]=0;
+				sdssetlen(data,pos[3]);
+				goto restart;
+			}
+		}
+	}
+	return data;
+}
+
+static char compile_split_1(const char* str,size_t *pos){
+	register char chr;
+	while(next_token(str,pos)){
+		switch(chr=str[pos[0]]){
+		case '=':
+		case '|':
+			return chr;
+		}
+	}
+	return 0;
+}
+
+static char compile_split(const char* str,size_t *pos){
+	register char chr;
+	while(next_token(str,pos)){
+		switch(chr=str[pos[0]]){
+		case '|':
+			return chr;
+		}
+	}
+	return 0;
+}
+
+static sds compile_exprq(sds str,int flags){
 	size_t pos[2];
 	pos[1]=0;
-	if(!fgets(buffer,sizeof(buffer),src))return NULL;
-	return compile_expr(buffer,F_isPiped,pos);
+	sds res = compile_expr(str,flags,pos);
+	sdsfree(str);
+	return res;
 }
+static sds compile_stockq(sds str,int cnt){
+	size_t pos[2];
+	pos[1]=0;
+	sds res = compile_stock(str,pos,sdsempty(),cnt);
+	sdsfree(str);
+	return res;
+}
+
+
+sds compile_line_str(sds line){
+	size_t pos[3];
+	sds comp,part;
+	
+	pos[1]=0;
+	switch( compile_split_1(line,pos) ){
+		case '|':{
+			comp = sdsnew("_pipe(");
+			part = compile_exprq(sdsnewlen(line,pos[0]),F_isPiped);
+			comp = sdscatsds(comp,part);
+			sdsfree(part);
+			pos[2] = pos[1];
+			while(compile_split(line,pos)){
+				comp = sdscat(comp,",");
+				part = compile_exprq(sdsnewlen(line+pos[2],pos[0]-pos[2]),F_isPiped);
+				comp = sdscatsds(comp,part);
+				sdsfree(part);
+				pos[2] = pos[1];
+			}
+			comp = sdscat(comp,",");
+			pos[1] = 0;
+			part = compile_expr(line+pos[2],F_isPiped,pos);
+			comp = sdscatsds(comp,part);
+			comp = sdscat(comp,");");
+			sdsfree(line);
+			return comp;
+		}break;
+		case '=':{
+			comp = sdsnewlen(line,pos[0]);
+			comp = compile_stockq(comp,1);
+			comp = sdscat(comp," = ");
+			part = compile_expr(line,F_isAssign,pos);
+			comp = sdscatsds(comp,part);
+			sdsfree(part);
+			sdsfree(line);
+			return comp;
+		}break;
+	}
+	pos[1]=0;
+	if(!next_token(line,pos)) { sdsfree(line); return NULL; }
+	
+	switch(pos[1]-pos[0]){
+	case 2:
+		if(!stcmp(line+pos[0],"if")){
+			comp = sdsnew("if ");
+			part = compile_expr(line,0,pos);
+			sdsfree(line);
+			comp = sdscatsds(comp,part);
+			sdsfree(part);
+			comp = sdscat(comp," then\n");
+			return comp;
+		}
+		break;
+	case 3:
+		if(!stcmp(line+pos[0],"end")){
+			sdsfree(line);
+			return sdsnew("end ; \n");
+		}
+		break;
+	case 5:
+		if(!stcmp(line+pos[0],"while")){
+			comp = sdsnew("if ");
+			part = compile_expr(line,0,pos);
+			sdsfree(line);
+			comp = sdscatsds(comp,part);
+			sdsfree(part);
+			comp = sdscat(comp," do\n");
+			return comp;
+		}
+		if(!stcmp(line+pos[0],"local")){
+			comp = sdsnew("local");
+			comp = compile_stock(line,pos,comp,1);
+			sdsfree(line);
+			return comp;
+		}
+		break;
+	case 6:
+		if(!stcmp(line+pos[0],"elseif")){
+			comp = sdsnew("if ");
+			part = compile_expr(line,0,pos);
+			sdsfree(line);
+			comp = sdscatsds(comp,part);
+			sdsfree(part);
+			comp = sdscat(comp," then\n");
+			return comp;
+		}
+	}
+	
+	comp = compile_exprq(line,0);
+	//printf(__FILE__ " %d: comp=%s\n",__LINE__,comp);
+	return comp;
+}
+
+
+sds compile_line(FILE* src){
+	sds line = getLine(src);
+	return compile_line_str(line);
+}
+
 
