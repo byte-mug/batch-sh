@@ -84,7 +84,17 @@ static sds compile_expr(const char* str,int flags,size_t *pos){
 	
 	if(isIdentFirst(str[pos[0]])){
 		first = sdsnewlen(str+pos[0],pos[1]-pos[0]);
-		if(!next_token(str,pos)) {sdsfree(first); return NULL;}
+		if(!next_token(str,pos)) {
+			if(flags&F_isPiped){
+				s1 = sdsnew("_slot(_execp,"); /*)*/
+			}else{
+				s1 = sdsnew("_spawnp(");/*)*/
+			}
+			s1 = compile_shell(first,sdslen(first),s1);
+			sdsfree(first);
+			s1 = sdscat(s1,")");
+			return s1;
+		}
 		if(str[pos[0]]=='(') /*)*/{
 			if(flags&F_isPiped){
 				s1 = sdsnew("_slot("); /*)*/
