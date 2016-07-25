@@ -14,7 +14,7 @@ lib.a:
 %.o: %.c
 	$(CC) -c $< -o $@
 
-main += main.o tokens.o compile.o functions.o 
+main += main.o tokens.o compile.o functions.o pipelib.o
 main += lib.a lua.a
 
 bts: $(main)

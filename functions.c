@@ -27,44 +27,22 @@
 #include <sys/wait.h>
 #include "luasrc/lua.h"
 #include "luasrc/lauxlib.h"
+#include "pipelib.h"
 
 typedef const char* string_t;
 
-static int sh___mkpipe (lua_State *L) {
-	lua_settop(L,0);
-	int *fds = lua_newuserdata(L,sizeof(int)*2);
-	luaL_getmetatable(L,"Cpipe");
-	lua_setmetatable(L,1);
-	if(pipe(fds))exit(1);
-	return 1;
-}
-
-static int sh___clospip (lua_State *L) {
-	int *fds = luaL_testudata(L,1,"Cpipe");
-	if(!fds)return 0;
-	close(fds[0]);
-	close(fds[1]);
-	return 0;
-}
-static int sh___pipein (lua_State *L) {
-	int *fds = luaL_testudata(L,1,"Cpipe");
-	if(!fds)return 0;
-	dup2(fds[0],0);
-	close(fds[0]);
-	close(fds[1]);
-	return 0;
-}
-static int sh___pipeout (lua_State *L) {
-	int *fds = luaL_testudata(L,1,"Cpipe");
-	if(!fds)return 0;
-	dup2(fds[1],1);
-	close(fds[0]);
-	close(fds[1]);
-	return 0;
-}
-
 static int sh_exit (lua_State *L) {
 	exit(lua_tointeger(L,1));
+	return 0;
+}
+
+static int sh_pipeclean (lua_State *L) {
+	pipeclean();
+	return 0;
+}
+
+static int sh_pipeadd (lua_State *L) {
+	pipeadd(lua_toboolean(L,1));
 	return 0;
 }
 
@@ -89,6 +67,7 @@ static int sh_fork (lua_State *L) {
 		lua_pushlightuserdata(L,(void*)(intptr_t)pid);
 		return 2;
 	}
+	pipeapply();
 	return 0;
 }
 
@@ -140,35 +119,28 @@ static const string_t sh_pipe =
 	"local exit = _exit\n"
 	"local fork = _fork\n"
 	"local wait = _wait\n"
-	"local t_ble   = table;\n"
 	"local tp   = table.pack;\n"
 	"local tu   = table.unpack;\n"
 	"local ipairz  = ipairs; \n"
-	"local mkpipe  = ___mkpipe; \n"
-	"local clospip = ___clospip; \n"
-	"local pipein  = ___pipein; \n"
-	"local pipeout = ___pipeout; \n"
-
-	"local function runslot(slot,i,o) \n"
+	"local pipeadd = _pipeadd; \n"
+	"local pipeclean = _pipeclean; \n"
+	"local function runslot(slot) \n"
 	" local rc,pid,fu; \n"
 	" rc,pid = fork(); \n"
 	" if rc then return {rc,pid} end \n"
-	" pipein(i); \n"
-	" pipeout(o); \n"
 	" fu = slot[1]; \n"
 	" fu(tu(slot[2])) ; \n"
 	" exit(0); \n"
 	"end\n"
 
 	"function _pipe(...)\n"
-	" local i,slot,t,j,op,np \n"
+	" local i,slot,t,j \n"
 	" t = tp(...); j = {} ;\n"
 	" for i,slot in ipairz(t) do \n"
-	"  clospip(op); \n"
-	"  op = np; \n"
-	"  if i < #t then np = mkpipe() else np = nil end \n"
-	"  j[i] = runslot(slot,op,np); \n"
+	"  pipeadd(i >= #t); \n"
+	"  j[i] = runslot(slot); \n"
 	" end\n"
+	" pipeclean(); \n"
 	" t = true\n"
 	" for i,slot in ipairz(j) do \n"
 	"  if slot[1] > 0 then t = wait(slot[2]) end ; \n"
@@ -195,18 +167,15 @@ static const string_t sh__S =
 ;
 
 void sh_install(lua_State *L){
-	luaL_newmetatable(L,"Cpipe");
-	lua_settop(L,0);
-	lua_register(L,"___mkpipe"  , sh___mkpipe  );
-	lua_register(L,"___clospip" , sh___clospip );
-	lua_register(L,"___pipein"  , sh___pipein  );
-	lua_register(L,"___pipeout" , sh___pipeout );
+	pipeinit();
 	lua_register(L,"_exit"  , sh_exit  );
 	lua_register(L,"_execp" , sh_execp );
 	lua_register(L,"_fork"  , sh_fork  );
 	lua_register(L,"_wait"  , sh_wait  );
 	lua_register(L,"_getenv", sh_getenv);
 	lua_register(L,"_setenv", sh_setenv);
+	lua_register(L,"_pipeclean", sh_pipeclean);
+	lua_register(L,"_pipeadd", sh_pipeadd);
 	//lua_register(L,"_spawnp",fsh_spawnp);
 
 	lua_settop(L,0);
