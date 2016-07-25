@@ -28,6 +28,7 @@
 
 #include <stdio.h>
 #include "luasrc/lua.h"
+#include "luasrc/lualib.h"
 #include "luasrc/lauxlib.h"
 
 #include "token.h"
