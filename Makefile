@@ -12,5 +12,14 @@ lib.a:
 %.o: %.c
 	$(CC) -c $< -o $@
 
-main: main.o tokens.o compile.o lib.a
-	$(CC) main.o tokens.o compile.o lib.a -o main
+main += main.o tokens.o compile.o functions.o 
+main += lib.a lua.a
+
+main: $(main)
+	$(CC) $(main) lua.a -lm -o main
+
+clean:
+	rm luaobj/*.o
+	rm libobj/*.o
+	rm *.o
+	rm *.a

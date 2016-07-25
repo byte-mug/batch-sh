@@ -32,3 +32,5 @@ main
 # Debug files
 *.dSYM/
 *.su
+
+testd*.lua

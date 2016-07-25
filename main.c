@@ -19,13 +19,38 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+
+#include <stdlib.h>
+
+
 #include <stdio.h>
+#include "luasrc/lua.h"
+#include "luasrc/lauxlib.h"
+
 #include "token.h"
 #include "compile.h"
+
 //char buffer[1<<12];
 
 
+/* see functions.c */
+void sh_install(lua_State *L);
+
 int main(int argc,const char* const* argv){
+	
+	if(argc<2) {
+		printf("usage: %s <script> args...\n",argv[0]);
+		return 1;
+	}
+	lua_State *L = luaL_newstate();
+	luaL_openlibs(L);
+	sh_install(L);
+	luaL_dofile(L,argv[1]);
+
+	return 0;
 	size_t pos[2];
 	int count=0;
 	for(;;){
