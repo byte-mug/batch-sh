@@ -176,6 +176,7 @@ static char compile_split_1(const char* str,size_t *pos){
 	while(next_token(str,pos)){
 		switch(chr=str[pos[0]]){
 		case '=':
+			if(pos[1]>(pos[0]+1))continue;
 		case '|':
 			return chr;
 		}
