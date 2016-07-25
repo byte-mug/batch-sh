@@ -25,8 +25,8 @@ endif
 
 ###### Batch shell
 ```
-#!/bin/???
-if ( $days > 365 )
+#!/bin/bts
+if ( tonumber($days) > 365 )
    echo This is over a year.
 end
 ```
@@ -63,13 +63,16 @@ end
 
 ###### Batch shell
 ```
-#!/bin/???
-$i = 2
-$j = 1
+#!/bin/bts
+$i = (2)
+$j = (1)
 while ( $j <= 10 )
    echo '2 **' $j '=' $i
-   $i = $i * 2
-   $j = $j + 1
+   $i = ($i * 2)
+   $j = ($j + 1)
 end
 ```
 
+## Known bugs.
+
+* Piping blocks.
