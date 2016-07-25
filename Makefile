@@ -1,5 +1,7 @@
 CC := gcc
 
+all: bts
+	true
 
 lua.a:
 	cd luaobj; $(CC) -c ../luasrc/*.c
@@ -14,6 +16,9 @@ lib.a:
 
 main += main.o tokens.o compile.o functions.o 
 main += lib.a lua.a
+
+bts: $(main)
+	$(CC) $(main) lua.a -lm -o bts
 
 main: $(main)
 	$(CC) $(main) lua.a -lm -o main

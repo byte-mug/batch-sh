@@ -35,12 +35,30 @@
 
 //char buffer[1<<12];
 
+struct reader{
+	sds current;
+	FILE* in;
+};
+static const char * sh_read (lua_State *L,void *data,size_t *size){	
+	struct reader *r = data;
+	if(r->current)sdsfree(r->current);
+	r->current = NULL;
+	while(!(r->current)){
+		*size = 0;
+		if(feof(r->in)) { return NULL; }
+		r->current = compile_line(r->in);
+	}
+	*size = r->current?sdslen(r->current):0;
+	//printf("%s",r->current);
+	return r->current;
+}
 
 /* see functions.c */
 void sh_install(lua_State *L);
 
 int main(int argc,const char* const* argv){
-	
+	int n;
+	struct reader re = {NULL,NULL};
 	if(argc<2) {
 		printf("usage: %s <script> args...\n",argv[0]);
 		return 1;
@@ -48,7 +66,15 @@ int main(int argc,const char* const* argv){
 	lua_State *L = luaL_newstate();
 	luaL_openlibs(L);
 	sh_install(L);
-	luaL_dofile(L,argv[1]);
+	re.in = fopen(argv[1],"r");
+	if(!re.in)return 1;
+	//luaL_loadfile(L,argv[1]);
+	lua_load(L,sh_read,&re,argv[1],"bt");
+
+	for(n=1;n<argc;++n){
+		lua_pushstring(L,argv[n]);
+	}
+	lua_pcall(L,n-1,0,0);
 
 	return 0;
 	size_t pos[2];

@@ -46,7 +46,7 @@ enum {
 static sds compile_stock(const char* str,size_t *pos,sds first,int cnt){
 	while((cnt>0)&&next_token(str,pos)){
 		switch(str[pos[0]]){
-		case '(':cnt++;
+		case '(':cnt++;break;
 		case ')':cnt--;
 		}
 		first = sdscat(first," ");
@@ -244,6 +244,7 @@ sds compile_line_str(sds line){
 			comp = sdscat(comp," = ");
 			part = compile_expr(line,F_isAssign,pos);
 			comp = sdscatsds(comp,part);
+			comp = sdscat(comp," ;\n");
 			sdsfree(part);
 			sdsfree(line);
 			return comp;
@@ -308,6 +309,7 @@ sds compile_line_str(sds line){
 
 sds compile_line(FILE* src){
 	sds line = getLine(src);
+	if(!line)return NULL;
 	return compile_line_str(line);
 }
 

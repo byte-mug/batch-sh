@@ -28,9 +28,11 @@
 *.x86_64
 *.hex
 main
+bts
 
 # Debug files
 *.dSYM/
 *.su
 
 testd*.lua
+testd*.bts
