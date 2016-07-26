@@ -1,6 +1,13 @@
 # batch-sh (under construction)
 Non-Interactive Batch Shell for UNIX scripting
 
+The *Batch shell* (`bts`) is a non-interactive programming-language and interpreter, loosly inspired by shell scripts.
+
+The language itself is a mixture of shell-script-like syntax and lua. The programmer can mix up lua code and shell code.
+
+The interpreter is a lua-interpreter with a code-translator, translating the shell like code into the lua language.
+
+
 ### Comparison
 
 ##### Example 1: if
