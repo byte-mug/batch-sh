@@ -306,6 +306,15 @@ sds compile_line_str(sds line){
 			comp = sdscat(comp," then\n");
 			return comp;
 		}
+		break;
+	case 8:
+		if(!stcmp(line+pos[0],"function")){
+			comp = sdsnew("function");
+			comp = compile_stock(line,pos,comp,1);
+			sdsfree(line);
+			comp = sdscat(comp," \n");
+			return comp;
+		}
 	}
 	
 	comp = compile_exprq(line,0);
