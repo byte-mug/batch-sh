@@ -292,6 +292,12 @@ sds compile_line_str(sds line){
 			return comp;
 		}
 		break;
+	case 4:
+		if(!stcmp(line+pos[0],"else")){
+			sdsfree(line);
+			return sdsnew("else \n");
+		}
+		break;
 	case 5:
 		if(!stcmp(line+pos[0],"while")){
 			comp = sdsnew("while ");
