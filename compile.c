@@ -270,6 +270,13 @@ sds compile_line_str(sds line){
 			sdsfree(line);
 			return sdsnew("end ; \n");
 		}
+		if(!stcmp(line+pos[0],"for")){
+			comp = sdsnew("for ");
+			comp = compile_stock(line,pos,comp,1);
+			sdsfree(line);
+			comp = sdscat(comp," do\n");
+			return comp;
+		}
 		break;
 	case 5:
 		if(!stcmp(line+pos[0],"while")){
@@ -285,6 +292,7 @@ sds compile_line_str(sds line){
 			comp = sdsnew("local");
 			comp = compile_stock(line,pos,comp,1);
 			sdsfree(line);
+			comp = sdscat(comp," ;\n");
 			return comp;
 		}
 		break;
