@@ -40,6 +40,13 @@ static int sh_glob(lua_State* L){
 }
 
 void sh_install2(lua_State *L){
-	lua_register(L,"glob",sh_glob);
+	lua_register(L,"tglob",sh_glob);
+	luaL_dostring(L,
+		"local Tglob = tglob ; \n"
+		"local tu = table.unpack; \n"
+		"function glob(...) return tu(Tglob(...)) end \n"
+	);
 }
+
+
 
