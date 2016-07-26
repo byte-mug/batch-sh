@@ -56,6 +56,7 @@ static const char * sh_read (lua_State *L,void *data,size_t *size){
 
 /* see functions.c */
 void sh_install(lua_State *L);
+void sh_install2(lua_State *L);
 
 int main(int argc,const char* const* argv){
 	int n;
@@ -67,6 +68,7 @@ int main(int argc,const char* const* argv){
 	lua_State *L = luaL_newstate();
 	luaL_openlibs(L);
 	sh_install(L);
+	sh_install2(L);
 	re.in = fopen(argv[1],"r");
 	if(!re.in)return 1;
 	//luaL_loadfile(L,argv[1]);
