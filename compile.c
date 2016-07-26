@@ -77,6 +77,20 @@ static inline sds compile_shell(const char* str,size_t len, sds first){
 	return first;
 }
 
+static sds pull_off_par(sds inner){
+	size_t i = sdslen(inner);
+	while(i){
+		i--;
+		if(inner[i]<=' ')continue;
+		if(inner[i]==')'){
+			inner[i] = 0;
+			sdssetlen(inner,i);
+		}
+		break;
+	}
+	return inner;
+}
+
 static sds compile_expr(const char* str,int flags,size_t *pos){
 	sds first,s1;
 	int param,isexpr;
@@ -133,7 +147,7 @@ static sds compile_expr(const char* str,int flags,size_t *pos){
 				if(str[pos[0]]=='\\')
 					if(!next_token(str,pos)) break;
 				if(str[pos[0]]=='(')
-					first = compile_stock(str,pos,sdscat(first,"("),1);
+					first = pull_off_par(compile_stock(str,pos,first,1));
 				else
 					first = compile_shell(str+pos[0],pos[1]-pos[0],first);
 			}while(next_token(str,pos));
