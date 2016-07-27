@@ -1,4 +1,4 @@
-# batch-sh (under construction)
+# batch-sh
 Non-Interactive Batch Shell for UNIX scripting
 
 The *Batch shell* (`bts`) is a non-interactive programming-language and interpreter, loosly inspired by shell scripts.
